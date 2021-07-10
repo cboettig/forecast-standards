@@ -27,14 +27,17 @@ set.seed(42)
 ##### Python
 
 ```{python setup-py}
+# Python standard library
 import datetime
 import tempfile
+import xml.etree.ElementTree as ET
 
+# External dependencies; all available on PyPI
 import numpy as np
 import matplotlib.pyplot as plt
 import netCDF4
-
 import pandas as pd
+import dicttoxml
 ```
 
 #### {-}
@@ -197,7 +200,7 @@ legend("bottomright",legend=species,col = seq_along(species),lty = 1)
 
 ##### Python
 
-```{python}
+```{python, dev="png"}
 plt.plot(times, n[:,0,0,0,0], "-")
 colors = ["r", "b"]
 for s in range(n_species):
@@ -580,7 +583,7 @@ attributes <- tibble::tribble(
  "obs_flag",          "[dimension]{observation error}",             "dimensionless",         NA,           "integer",    NA,
  "species_1",         "[variable]{Pop. density of species 1}",      "numberPerMeterSquared", NA,           "real",       NA,
  "species_2",         "[variable]{Pop. density of species 2}",      "numberPerMeterSquared", NA,           "real",       NA,
- "forecast",          "[flag]{whether time step assimilated data}", "dimensionless",         NA,           "integer",    NA,
+ "forecast",          "[flag]{whether time step was a forecast}",   "dimensionless",         NA,           "integer",    NA,
  "data_assimilation", "[flag]{whether time step assimilated data}", "dimensionless",         NA,           "integer",    NA
 ) 
 ## note: EML uses a different unit standard than UDUNITS. For now use EML. EFI needs to provide a custom unitList.
@@ -592,7 +595,101 @@ attrList <- set_attributes(attributes,
 
 ##### Python
 
-(Under construction)
+No easy function for this, so have to do it (tediously) by hand:
+
+```{python}
+# NOTE: List of dicts 
+attrList = [
+    {
+        "attributeName": "time",
+        "attributeDefinition": "[dimension]{time}",
+        "storageType": "date",
+        "measurementScale": {
+            "dateTime": {
+                "formatString": "YYYY-MM-DD",
+                "dateTimeDomain": []
+            }
+        }
+    },
+    {
+        "attributeName": "depth",
+        "attributeDefinition": "[dimension]{depth in reservior}",
+        "storageType": "float",
+        "measurementScale": {
+            "ratio": {
+                "unit": {"standardUnit": "meter"},
+                "numericDomain": {"numberType": "real"}
+            }
+        }
+    },
+    {
+        "attributeName": "ensemble",
+        "attributeDefinition": "[dimension]{index of ensemble member}",
+        "storageType": "float",
+        "measurementScale": {
+            "ratio": {
+                "unit": {"standardUnit": "dimensionless"},
+                "numericDomain": {"numberType": "integer"}
+            }
+        }
+    },
+    {
+        "attributeName": "obs_flag",
+        "attributeDefinition": "[dimension]{observation error}",
+        "storageType": "float",
+        "measurementScale": {
+            "ratio": {
+                "unit": {"standardUnit": "dimensionless"},
+                "numericDomain": {"numberType": "integer"}
+            }
+        }
+    },
+    {
+        "attributeName": "species_1",
+        "attributeDefinition": "[variable]{Pop. density of species 1}",
+        "storageType": "float",
+        "measurementScale": {
+            "ratio": {
+                "unit": {"standardUnit": "numberPerMeterSquared"},
+                "numericDomain": {"numberType": "real"}
+            }
+        }
+    },
+    {
+        "attributeName": "species_2",
+        "attributeDefinition": "[variable]{Pop. density of species 2}",
+        "storageType": "float",
+        "measurementScale": {
+            "ratio": {
+                "unit": {"standardUnit": "numberPerMeterSquared"},
+                "numericDomain": {"numberType": "real"}
+            }
+        }
+    },
+    {
+        "attributeName": "forecast",
+        "attributeDefinition": "[flag]{whether time step was a forecast}",
+        "storageType": "float",
+        "measurementScale": {
+            "ratio": {
+                "unit": {"standardUnit": "dimensionless"},
+                "numericDomain": {"numberType": "integer"}
+            }
+        }
+    },
+    {
+        "attributeName": "data_assimilation",
+        "attributeDefinition": "[flag]{whether time step assimilated data}",
+        "storageType": "float",
+        "measurementScale": {
+            "ratio": {
+                "unit": {"standardUnit": "dimensionless"},
+                "numericDomain": {"numberType": "integer"}
+            }
+        }
+    }
+]
+```
 
 
 #### {-}
@@ -633,7 +730,30 @@ dataTable <- eml$dataTable(
 
 ##### Python
 
-(Under construction)
+```{python}
+physical = {
+    "objectName": "logistic-forecast-ensemble-multi-variable-multi-depth.csv",
+    "size": {"unit": "bytes", "size": "110780"},
+    "authentication": {
+        "method": "MD5",
+        "authentication": "4dbe687fa1f5fc0ff789096076eebd78"
+    },
+    "dataFormat": {
+        "textFormat": {
+            "recordDelimiter": "\n",
+            "attributeOrientation": "column",
+            "simpleDelimited": {"fieldDelimiter": ","}
+        }
+    }
+}
+
+dataTable = {
+    "entityName": "forecast",  ## this is a standard name to allow us to distinguish this entity from 
+    "entityDescription": "Forecast of population size using a depth specific model",
+    "physical": physical,
+    "attributeList": attrList
+}
+```
 
 #### {-}
 
@@ -668,7 +788,13 @@ me <- list(individualName = list(givenName = "Quinn",
 
 ##### Python
 
-(Under construction)
+```{python}
+me = {
+    "individualName": {"givenName": "Quinn", "surName": "Thomas"},
+    "electronicMailAddress": "rqthomas@vt.edu",
+    "id": "https://orcid.org/0000-0003-1282-7825"
+}
+```
 
 #### {-}
 
@@ -697,7 +823,43 @@ coverage <-
 
 ##### Python
 
-(Under construction)
+No equivalent utility, so have to (tediously) do this by hand.
+
+```{python}
+coverage = {
+    "geographicCoverage": {
+        "geographicDescription": "Lake Sunapee, NH, USA",
+        "boundingCoordinates": {
+            "westBoundingCoordinate": -72.15,
+            "eastBoundingCoordinate": -72.05,
+            "northBoundingCoordinate": 43.48,
+            "southBoundingCoordinate": 43.36
+        }
+    },
+    "temporalCoverage": {"rangeOfDates": {
+        "beginDate": {"calendarDate": str(times[0])},
+        "endDate": {"calendarDate": str(times[-1])}
+    }},
+    "taxonomicCoverage": {
+        "taxonomicClassification": {
+            "taxonRankName": "Genus",
+            "taxonRankValue": "Gloeotrichia",
+            "taxonomicClassification": {
+                "taxonRankName": "Species",
+                "taxonRankValue": "echinulata"
+            }
+        },
+        "taxonomicClassification": {
+            "taxonRankName": "Genus",
+            "taxonRankValue": "Anabaena",
+            "taxonomicClassification": {
+                "taxonRankName": "Species",
+                "taxonRankValue": "circinalis"
+            }
+        }
+    }
+}
+```
 
 #### {-}
 
@@ -721,7 +883,13 @@ keywordSet <- list(
 
 ##### Python
 
-(Under construction)
+```{python}
+# NOTE: List of dicts!
+keywordSet = [{
+    "keywordThesaurus" : "EFI controlled vocabulary",
+    "keyword" : ["forecast", "population", "timeseries"]
+}]
+```
 
 #### {-}
 
@@ -739,7 +907,10 @@ abstract_text <- system.file("extdata", "abstract.md", package="EFIstandards", m
 
 ##### Python
 
-(Under construction)
+```{python}
+with open("../inst/extdata/abstract.md", "r") as f:
+    abstract_text = f.read()
+```
 
 #### {-}
 
@@ -767,7 +938,19 @@ dataset = eml$dataset(
 
 ##### Python
 
-(Under construction)
+```{python}
+dataset = {
+    "title" : "A very simple Lotka-Volterra forecast",
+    "creator" : me,
+    "contact" : {"references": "https://orcid.org/0000-0003-1282-7825"},
+    "pubDate" : forecast_issue_time,
+    "intellectualRights" : "http://www.lternet.edu/data/netpolicy.html.",
+    "abstract" :  "An illustration of how we might use EML metadata to describe an ecological forecast",
+    "dataTable" : dataTable,
+    "keywordSet" : keywordSet,
+    "coverage" : coverage
+}
+```
 
 #### {-}
 
@@ -834,7 +1017,54 @@ additionalMetadata <- eml$additionalMetadata(
 
 ##### Python
 
-(Under construction)
+```{python}
+additionalMetadata = {
+    "metadata" : { 
+        "forecast" : { 
+            ## Basic elements
+            "timestep" : "1 day", ## should be udunits parsable; already in coverage -> temporalCoverage?
+            "forecast_horizon" : "30 days",
+            "forecast_issue_time" : forecast_issue_time,
+            "forecast_iteration_id" : forecast_iteration_id,
+            "forecast_project_id" : forecast_project_id,
+            "metadata_standard_version" : "0.3",
+            "model_description" : {
+                "forecast_model_id" : forecast_model_id,
+                "name" : "discrete Lotka–Volterra model",
+                "type" : "process-based",
+                "repository" : "https://github.com/eco4cast/EFIstandards/blob/master/vignettes/logistic-metadata-example.Rmd"
+            },
+            ## MODEL STRUCTURE & UNCERTAINTY CLASSES
+            "initial_conditions" : {
+                # Possible values: absent, present, data_driven, propagates, assimilates
+                "status" : "present",
+                # Number of parameters / dimensionality
+                "complexity" : 2  ## [species 1, species 2] per depth
+            },
+            "drivers" : {"status" : "absent"},
+            "parameters" : {
+                "status" : "present",
+                "complexity" : 6  ## [r, K, alpha] x 2 spp
+            },
+            "random_effects" : {"status" : "absent"},
+            "process_error" : {
+                "status" : "propagates",
+                "propagation" : {
+                    "type" : "ensemble", # ensemble vs analytic
+                    "size" : 10          # required if ensemble
+                },
+                "complexity" : 2,   
+                "covariance" : False
+            },
+            "obs_error" : {
+                "status" : "present",
+                "complexity" : 2,
+                "covariance" : False
+            }
+        } # forecast
+    } # metadata
+}
+```
 
 #### {-}
 
@@ -886,7 +1116,34 @@ my_eml <- eml$eml(dataset = dataset,
 
 ##### Python
 
-(Under construction)
+No nice utilities, so we have to create the XML by hand.
+This is significantly simplified by the `dicttoxml` package, though we still have to do a bit of extra work.
+
+```{python}
+dataset_xml = ET.fromstring(dicttoxml.dicttoxml(
+    dataset,
+    custom_root="dataset",
+    attr_type=False
+))
+
+metadata_xml = ET.fromstring(dicttoxml.dicttoxml(
+    additionalMetadata,
+    custom_root="additionalMetadata",
+    attr_type=False
+))
+
+my_eml = ET.Element("eml:eml", {
+    "xmlns:eml": "https://eml.ecoinformatics.org/eml-2.2.0",
+    "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "xmlns:stmml": "http://www.xml-cml.org/schema/stmml-1.2",
+    "system": "datetime",
+    "packageId": forecast_iteration_id,
+    "xsi:schemaLocation": "https://eml.ecoinformatics.org/eml-2.2.0 https://eml.ecoinformatics.org/eml-2.2.0/eml.xsd"
+})
+
+my_eml.append(dataset_xml)
+my_eml.append(metadata_xml)
+```
 
 #### {-}
 
@@ -902,7 +1159,7 @@ all, but if you do, you have to document the "physical" file format it is in
 
 ```{r}
 ## check base EML
-eml_validate(my_eml)
+emld::eml_validate(my_eml)
 
 ## check that the EML is also a valid EFI forecast
 EFIstandards::forecast_validator(my_eml)
@@ -910,10 +1167,39 @@ EFIstandards::forecast_validator(my_eml)
 
 ##### Python
 
-(Under construction)
+There is no Python EML validation utility.
+Therefore, we will have to use the R utility here.
+First, we write to disk.
+
+```{python write-eml}
+with open("forecast-eml-python.xml", "w") as f:
+    f.write(ET.tostring(my_eml, encoding="unicode"))
+```
+
+Next, we have two options:
+One is to use the Python standard library to spawn a separate R process that runs the validator.
+
+```{python r-subprocess, eval=FALSE}
+import subprocess
+result = subprocess.run([
+    "Rscript",
+    "-e", 'emld::eml_validate("forecast-eml-python.xml")',
+    "-e", 'EFIstandards::forecast_validator("forecast-eml-python.xml")'
+], capture_output=True)
+```
+
+Alternatively, we can use the `rpy2` module to run R directly from within Python (analogous to R's `reticulate`).
+
+```{python r-rpy2, eval=FALSE}
+from rpy2.robjects.packages import importr
+emld = importr("emld")
+EFIstandards = importr("EFIstandards")
+
+emld.eml_validate("forecast-eml-python.xml")
+EFIstandards.forecast_validator("forecast-eml-python.xml")
+```
 
 #### {-}
-
 
 We are now ready to write out a valid EML document: 
 
@@ -927,7 +1213,13 @@ write_eml(my_eml, "forecast-eml.xml")
 
 ##### Python
 
-(Under construction)
+We already did this above to validate the document.
+However, for completeness:
+
+```{python}
+with open("forecast-eml-python.xml", "w") as f:
+    f.write(ET.tostring(my_eml, encoding="unicode"))
+```
 
 #### {-}
 
@@ -945,7 +1237,7 @@ emld::as_json(as_emld("forecast-eml.xml"), file = "forecast-eml.json")
 ```
 
 
-```{r eval=FALSE, echo=FALSE}
+```{r, eval=FALSE, echo=FALSE}
 # NOTE: the output files in this vignette 
 # should be stored in the package. to updat them change this chunk to eval=TRUE
 devtools::load_all()
@@ -958,7 +1250,11 @@ ncpkgfile <- system.file("extdata", ncfname, package="EFIstandards")
 file.copy(ncfname,  ncpkgfile, overwrite=TRUE)
 ```
 
+##### Python
 
+(Under construction)
+
+#### {-}
 
 ```{r include=FALSE}
 ## Cleanup
@@ -966,11 +1262,4 @@ lapply(list.files(pattern = "[.]nc"), unlink)
 lapply(list.files(pattern = "[.]csv"), unlink)
 lapply(list.files(pattern = "[.]json"), unlink)
 lapply(list.files(pattern = "[.]xml"), unlink)
-
 ```
-
-##### Python
-
-(Under construction)
-
-#### {-}

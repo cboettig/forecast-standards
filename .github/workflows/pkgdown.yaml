@@ -33,7 +33,7 @@ jobs:
         run: echo "options(reticulate.conda_binary = reticulate::miniconda_conda())"
 
       - name: Install Python dependencies
-        run: reticulate::py_install(c("numpy", "matplotlib", "NetCDF4", "pandas"))
+        run: reticulate::py_install(c("numpy", "matplotlib", "NetCDF4", "pandas", "dicttoxml"))
         shell: Rscript {0}
 
       - name: Install package

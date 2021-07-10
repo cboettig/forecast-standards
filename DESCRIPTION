@@ -42,6 +42,7 @@ Config/reticulate:
      list(package = "numpy"),
      list(package = "matplotlib"),
      list(package = "NetCDF4"),
-     list(package = "pandas")
+     list(package = "pandas"),
+     list(package = "dicttoxml")
    )
  )
